@@ -80,3 +80,19 @@ form.addEventListener("submit", (e) => {
   form.reset();
   render();
 });
+
+list.addEventListener("click", (e) => {
+  const li = e.target.closest("li");
+  if (!li) return;
+  const id = Number(li.dataset.id);
+
+  if (e.target.closest(".hapus")) {
+    tasks = tasks.filter((t) => t.id !== id);
+  } else if (e.target.matches("input[type='checkbox']")) {
+    const task = tasks.find((t) => t.id === id);
+    task.selesai = e.target.checked;
+  } else {
+    return;
+  }
+  render();
+});
