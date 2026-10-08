@@ -96,3 +96,15 @@ list.addEventListener("click", (e) => {
   }
   render();
 });
+
+document.querySelector("#filters").addEventListener("click", (e) => {
+  const btn = e.target.closest(".filter");
+  if (!btn) return;
+  filterAktif = btn.dataset.filter;
+  document
+    .querySelectorAll(".filter")
+    .forEach((b) => b.classList.toggle("on", b === btn));
+  render();
+});
+
+render();
