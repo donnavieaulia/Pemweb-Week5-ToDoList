@@ -48,3 +48,35 @@ function render() {
 }
 
 render();
+
+const form = document.querySelector("#task-form");
+const inputJudul = document.querySelector("#judul");
+const inputMatkul = document.querySelector("#matkul");
+const inputDeadline = document.querySelector("#deadline");
+const errorEl = document.querySelector("#error");
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const judul = inputJudul.value.trim();
+  const deadline = inputDeadline.value;
+
+  if (judul.length < 3) {
+    errorEl.textContent = "Judul minimal 3 karakter.";
+    return;
+  }
+  if (!deadline) {
+    errorEl.textContent = "Deadline wajib diisi.";
+    return;
+  }
+
+  errorEl.textContent = "";
+  tasks.push({
+    id: Date.now(),
+    judul,
+    matkul: inputMatkul.value,
+    deadline,
+    selesai: false,
+  });
+  form.reset();
+  render();
+});
