@@ -1,4 +1,4 @@
-let tasks = [
+const dataAwal = [
   {
     id: 1,
     judul: "Lab 10 event delegation",
@@ -15,11 +15,42 @@ let tasks = [
   },
 ];
 
+let tasks;
+try {
+  tasks = JSON.parse(localStorage.getItem("tasks")) ?? dataAwal;
+} catch {
+  tasks = dataAwal;
+}
+
+let filterAktif = "semua"; // BARU
+
 const list = document.querySelector("#task-list");
+const counter = document.querySelector("#counter"); // BARU
+const emptyMsg = document.querySelector("#empty"); // BARU
+const form = document.querySelector("#task-form");
+const inputJudul = document.querySelector("#judul");
+const inputMatkul = document.querySelector("#matkul");
+const inputDeadline = document.querySelector("#deadline");
+const errorEl = document.querySelector("#error");
 
 function render() {
+  localStorage.setItem("tasks", JSON.stringify(tasks)); // BARU
+
+  const urut = [...tasks].sort((a, b) => a.deadline.localeCompare(b.deadline)); // BARU
+  const tampil = urut.filter(
+    (
+      t, // BARU
+    ) =>
+      filterAktif === "aktif"
+        ? !t.selesai
+        : filterAktif === "selesai"
+          ? t.selesai
+          : true,
+  );
+
   list.innerHTML = ""; // hanya mengosongkan list, tidak memasukkan data user
-  tasks.forEach((t) => {
+  tampil.forEach((t) => {
+    // sebelumnya tasks.forEach
     const li = document.createElement("li");
     li.dataset.id = t.id;
     if (t.selesai) li.classList.add("done");
@@ -45,15 +76,10 @@ function render() {
     li.append(cb, info, btn);
     list.append(li);
   });
+
+  counter.textContent = `${tasks.filter((t) => !t.selesai).length} tugas aktif`; // BARU
+  emptyMsg.hidden = tampil.length > 0; // BARU
 }
-
-render();
-
-const form = document.querySelector("#task-form");
-const inputJudul = document.querySelector("#judul");
-const inputMatkul = document.querySelector("#matkul");
-const inputDeadline = document.querySelector("#deadline");
-const errorEl = document.querySelector("#error");
 
 form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -107,4 +133,4 @@ document.querySelector("#filters").addEventListener("click", (e) => {
   render();
 });
 
-render();
+render(); // cukup satu kali, paling bawah
