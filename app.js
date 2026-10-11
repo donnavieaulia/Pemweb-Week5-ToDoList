@@ -1,5 +1,18 @@
 async function api(url, options = {}) {
-  const res = await fetch(url, options);
+  const res = await fetch(url, {
+    headers: options.body ? { "Content-Type": "application/json" } : {},
+    ...options,
+  });
+
+  // fetch hanya reject saat jaringan gagal, jadi status HTTP harus dicek sendiri
+  if (!res.ok) {
+    let pesan = `Terjadi kesalahan (${res.status})`;
+    try {
+      const data = await res.json();
+      pesan = data.message || data.error || pesan;
+    } catch {}
+    throw new Error(pesan);
+  }
   return res.json();
 }
 
@@ -17,6 +30,7 @@ const inputDeadline = document.querySelector("#deadline");
 const errorEl = document.querySelector("#error");
 const statusEl = document.querySelector("#status");
 const statusText = document.querySelector("#status-text");
+const submitBtn = document.querySelector("#tambah");
 
 function render() {
   statusEl.hidden = status === "ready";
@@ -71,24 +85,13 @@ function render() {
 async function muatTugas() {
   status = "loading";
   render();
-
-  try {
-    const data = await api("/api/tugas");
-    tasks = Array.isArray(data)
-      ? data
-      : Array.isArray(data?.data)
-        ? data.data
-        : [];
-  } catch (err) {
-    console.error("Gagal memuat tugas:", err);
-    tasks = [];
-  }
-
+  const data = await api("/api/tugas");
+  tasks = Array.isArray(data) ? data : data.data; // sesuaikan dengan bentuk respons Mock API
   status = "ready";
   render();
 }
 
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const judul = inputJudul.value.trim();
   const deadline = inputDeadline.value;
@@ -103,33 +106,38 @@ form.addEventListener("submit", (e) => {
   }
 
   errorEl.textContent = "";
-  tasks.push({
-    id: Date.now(),
-    judul,
-    matkul: inputMatkul.value,
-    deadline,
-    selesai: false,
-  });
-  form.reset();
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Menyimpan…";
+
+  try {
+    const baru = await api("/api/tugas", {
+      method: "POST",
+      body: JSON.stringify({ judul, matkul: inputMatkul.value, deadline }),
+    });
+    tasks.push(baru);
+    form.reset();
+  } catch (err) {
+    errorEl.textContent = err.message; // pesan error dari server (400)
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Tambah";
+  }
   render();
 });
 
 list.addEventListener("click", (e) => {
   const li = e.target.closest("li");
   if (!li) return;
-
   const id = Number(li.dataset.id);
 
   if (e.target.closest(".hapus")) {
-    tasks = tasks.filter((t) => Number(t.id) !== id);
+    tasks = tasks.filter((t) => t.id !== id);
   } else if (e.target.matches("input[type='checkbox']")) {
-    const task = tasks.find((t) => Number(t.id) === id);
-    if (!task) return;
+    const task = tasks.find((t) => t.id === id);
     task.selesai = e.target.checked;
   } else {
     return;
   }
-
   render();
 });
 
