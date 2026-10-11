@@ -20,7 +20,8 @@ async function api(url, options = {}) {
 
 let tasks = [];
 let filterAktif = "semua";
-let status = "loading"; // "loading" | "ready"
+let status = "loading"; // "loading" | "error" | "ready"
+let errorMsg = "";
 
 const list = document.querySelector("#task-list");
 const counter = document.querySelector("#counter");
@@ -33,10 +34,12 @@ const errorEl = document.querySelector("#error");
 const statusEl = document.querySelector("#status");
 const statusText = document.querySelector("#status-text");
 const submitBtn = document.querySelector("#tambah");
+const retryBtn = document.querySelector("#retry");
 
 function render() {
   statusEl.hidden = status === "ready";
-  statusText.textContent = "Memuat tugas…";
+  retryBtn.hidden = status !== "error";
+  statusText.textContent = status === "loading" ? "Memuat tugas…" : errorMsg;
   list.innerHTML = "";
   if (status !== "ready") {
     counter.textContent = "";
@@ -87,11 +90,19 @@ function render() {
 async function muatTugas() {
   status = "loading";
   render();
-  const data = await api("/api/tugas");
-  tasks = Array.isArray(data) ? data : data.data; // sesuaikan dengan bentuk respons Mock API
-  status = "ready";
+  try {
+    const data = await api("/api/tugas");
+    tasks = Array.isArray(data) ? data : data.data; // sesuaikan dengan bentuk respons Mock API
+    errorMsg = "";
+    status = "ready";
+  } catch (err) {
+    status = "error";
+    errorMsg = `Gagal memuat tugas: ${err.message}`;
+  }
   render();
 }
+
+retryBtn.addEventListener("click", muatTugas);
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -132,19 +143,24 @@ list.addEventListener("click", async (e) => {
   if (!li) return;
   const id = li.dataset.id; // string
 
-  if (e.target.closest(".hapus")) {
-    await api(`/api/tugas/${id}`, { method: "DELETE" });
-    tasks = tasks.filter((t) => String(t.id) !== id);
-  } else if (e.target.matches("input[type='checkbox']")) {
-    const diperbarui = await api(`/api/tugas/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({ selesai: e.target.checked }),
-    });
-    tasks = tasks.map((t) => (String(t.id) === id ? diperbarui : t));
-  } else {
-    return;
+  errorEl.textContent = "";
+  try {
+    if (e.target.closest(".hapus")) {
+      await api(`/api/tugas/${id}`, { method: "DELETE" });
+      tasks = tasks.filter((t) => String(t.id) !== id);
+    } else if (e.target.matches("input[type='checkbox']")) {
+      const diperbarui = await api(`/api/tugas/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ selesai: e.target.checked }),
+      });
+      tasks = tasks.map((t) => (String(t.id) === id ? diperbarui : t));
+    } else {
+      return;
+    }
+  } catch (err) {
+    errorEl.textContent = err.message;
   }
-  render(); // state diperbarui dari respons server
+  render(); // jika gagal, checkbox kembali ke kondisi sebenarnya
 });
 
 document.querySelector("#filters").addEventListener("click", (e) => {
