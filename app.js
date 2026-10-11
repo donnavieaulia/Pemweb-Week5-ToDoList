@@ -13,6 +13,8 @@ async function api(url, options = {}) {
     } catch {}
     throw new Error(pesan);
   }
+
+  if (res.status === 204) return null; // DELETE tidak mengembalikan isi
   return res.json();
 }
 
@@ -125,20 +127,24 @@ form.addEventListener("submit", async (e) => {
   render();
 });
 
-list.addEventListener("click", (e) => {
+list.addEventListener("click", async (e) => {
   const li = e.target.closest("li");
   if (!li) return;
-  const id = Number(li.dataset.id);
+  const id = li.dataset.id; // string
 
   if (e.target.closest(".hapus")) {
-    tasks = tasks.filter((t) => t.id !== id);
+    await api(`/api/tugas/${id}`, { method: "DELETE" });
+    tasks = tasks.filter((t) => String(t.id) !== id);
   } else if (e.target.matches("input[type='checkbox']")) {
-    const task = tasks.find((t) => t.id === id);
-    task.selesai = e.target.checked;
+    const diperbarui = await api(`/api/tugas/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ selesai: e.target.checked }),
+    });
+    tasks = tasks.map((t) => (String(t.id) === id ? diperbarui : t));
   } else {
     return;
   }
-  render();
+  render(); // state diperbarui dari respons server
 });
 
 document.querySelector("#filters").addEventListener("click", (e) => {
