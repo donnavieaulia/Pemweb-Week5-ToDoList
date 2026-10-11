@@ -5,6 +5,7 @@ async function api(url, options = {}) {
 
 let tasks = [];
 let filterAktif = "semua";
+let status = "loading"; // "loading" | "ready"
 
 const list = document.querySelector("#task-list");
 const counter = document.querySelector("#counter");
@@ -14,8 +15,19 @@ const inputJudul = document.querySelector("#judul");
 const inputMatkul = document.querySelector("#matkul");
 const inputDeadline = document.querySelector("#deadline");
 const errorEl = document.querySelector("#error");
+const statusEl = document.querySelector("#status");
+const statusText = document.querySelector("#status-text");
 
 function render() {
+  statusEl.hidden = status === "ready";
+  statusText.textContent = "Memuat tugas…";
+  list.innerHTML = "";
+  if (status !== "ready") {
+    counter.textContent = "";
+    emptyMsg.hidden = true;
+    return;
+  }
+
   const urut = [...tasks].sort((a, b) => a.deadline.localeCompare(b.deadline));
   const tampil = urut.filter((t) =>
     filterAktif === "aktif"
@@ -25,7 +37,6 @@ function render() {
         : true,
   );
 
-  list.innerHTML = ""; // hanya mengosongkan list, tidak memasukkan data user
   tampil.forEach((t) => {
     const li = document.createElement("li");
     li.dataset.id = t.id;
@@ -58,8 +69,22 @@ function render() {
 }
 
 async function muatTugas() {
-  const data = await api("/api/tugas");
-  tasks = Array.isArray(data) ? data : data.data; // sesuaikan dengan bentuk respons Mock API
+  status = "loading";
+  render();
+
+  try {
+    const data = await api("/api/tugas");
+    tasks = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.data)
+        ? data.data
+        : [];
+  } catch (err) {
+    console.error("Gagal memuat tugas:", err);
+    tasks = [];
+  }
+
+  status = "ready";
   render();
 }
 
@@ -92,16 +117,19 @@ form.addEventListener("submit", (e) => {
 list.addEventListener("click", (e) => {
   const li = e.target.closest("li");
   if (!li) return;
+
   const id = Number(li.dataset.id);
 
   if (e.target.closest(".hapus")) {
-    tasks = tasks.filter((t) => t.id !== id);
+    tasks = tasks.filter((t) => Number(t.id) !== id);
   } else if (e.target.matches("input[type='checkbox']")) {
-    const task = tasks.find((t) => t.id === id);
+    const task = tasks.find((t) => Number(t.id) === id);
+    if (!task) return;
     task.selesai = e.target.checked;
   } else {
     return;
   }
+
   render();
 });
 

@@ -113,3 +113,11 @@ li.done .judul {
   text-align: center;
   color: #8a94a6;
 }
+.status {
+  text-align: center;
+  padding: 1rem;
+  color: #5b6678;
+  border: 1px dashed #cfd6e2;
+  border-radius: 10px;
+  margin-bottom: 0.6rem;
+}
