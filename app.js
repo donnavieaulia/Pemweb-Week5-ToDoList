@@ -1,32 +1,14 @@
-const dataAwal = [
-  {
-    id: 1,
-    judul: "Lab 10 event delegation",
-    matkul: "Pemrograman Web",
-    deadline: "2026-10-08",
-    selesai: false,
-  },
-  {
-    id: 2,
-    judul: "ERD sistem perpustakaan",
-    matkul: "Basis Data",
-    deadline: "2026-10-12",
-    selesai: true,
-  },
-];
-
-let tasks;
-try {
-  tasks = JSON.parse(localStorage.getItem("tasks")) ?? dataAwal;
-} catch {
-  tasks = dataAwal;
+async function api(url, options = {}) {
+  const res = await fetch(url, options);
+  return res.json();
 }
 
-let filterAktif = "semua"; // BARU
+let tasks = [];
+let filterAktif = "semua";
 
 const list = document.querySelector("#task-list");
-const counter = document.querySelector("#counter"); // BARU
-const emptyMsg = document.querySelector("#empty"); // BARU
+const counter = document.querySelector("#counter");
+const emptyMsg = document.querySelector("#empty");
 const form = document.querySelector("#task-form");
 const inputJudul = document.querySelector("#judul");
 const inputMatkul = document.querySelector("#matkul");
@@ -34,23 +16,17 @@ const inputDeadline = document.querySelector("#deadline");
 const errorEl = document.querySelector("#error");
 
 function render() {
-  localStorage.setItem("tasks", JSON.stringify(tasks)); // BARU
-
-  const urut = [...tasks].sort((a, b) => a.deadline.localeCompare(b.deadline)); // BARU
-  const tampil = urut.filter(
-    (
-      t, // BARU
-    ) =>
-      filterAktif === "aktif"
-        ? !t.selesai
-        : filterAktif === "selesai"
-          ? t.selesai
-          : true,
+  const urut = [...tasks].sort((a, b) => a.deadline.localeCompare(b.deadline));
+  const tampil = urut.filter((t) =>
+    filterAktif === "aktif"
+      ? !t.selesai
+      : filterAktif === "selesai"
+        ? t.selesai
+        : true,
   );
 
   list.innerHTML = ""; // hanya mengosongkan list, tidak memasukkan data user
   tampil.forEach((t) => {
-    // sebelumnya tasks.forEach
     const li = document.createElement("li");
     li.dataset.id = t.id;
     if (t.selesai) li.classList.add("done");
@@ -77,8 +53,14 @@ function render() {
     list.append(li);
   });
 
-  counter.textContent = `${tasks.filter((t) => !t.selesai).length} tugas aktif`; // BARU
-  emptyMsg.hidden = tampil.length > 0; // BARU
+  counter.textContent = `${tasks.filter((t) => !t.selesai).length} tugas aktif`;
+  emptyMsg.hidden = tampil.length > 0;
+}
+
+async function muatTugas() {
+  const data = await api("/api/tugas");
+  tasks = Array.isArray(data) ? data : data.data; // sesuaikan dengan bentuk respons Mock API
+  render();
 }
 
 form.addEventListener("submit", (e) => {
@@ -133,4 +115,4 @@ document.querySelector("#filters").addEventListener("click", (e) => {
   render();
 });
 
-render(); // cukup satu kali, paling bawah
+muatTugas(); // dipanggil paling bawah, setelah semua variabel dan listener siap
